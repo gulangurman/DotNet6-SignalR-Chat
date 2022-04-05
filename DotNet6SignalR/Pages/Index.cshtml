@@ -1,0 +1,48 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="container">
+    <input type="text" id="username" placeholder="user name" />
+    <input type="text" id="message" placeholder="message" />
+    <input type="button" id="sendmessage" value="Send" />
+    <ul id="discussion"></ul>
+</div>
+
+<script type="text/javascript" src="~/lib/microsoft-signalr/signalr.js"></script>
+<!--Add script to update the page and send messages.-->
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+
+        var usernameInput = document.getElementById('username');
+        var messageInput = document.getElementById('message');
+        messageInput.focus();
+        var connection = new signalR.HubConnectionBuilder().withUrl('/chat').build();
+
+        // Create a function that the hub can call to broadcast messages.
+        connection.on('broadcastMessage', function (name, message) {
+            var encodedName = name;
+            var encodedMsg = message;
+            var liElement = document.createElement('li');
+            liElement.innerHTML = '<strong>' + encodedName + '</strong>:&nbsp;&nbsp;' + encodedMsg;
+            document.getElementById('discussion').appendChild(liElement);
+        });
+
+        connection.start()
+            .then(function () {
+                console.log('connection started');
+                document.getElementById('sendmessage').addEventListener('click', function (event) {
+                    // Call the Send method on the hub.
+                    connection.invoke('send', usernameInput.value, messageInput.value);
+                    messageInput.value = '';
+                    messageInput.focus();
+                    event.preventDefault();
+                });
+            })
+            .catch(error => {
+                console.error(error.message);
+            });
+    });
+</script>
